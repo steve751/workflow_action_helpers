@@ -8,6 +8,12 @@ Installing this package adds its step types to the engine's step catalog, so rul
 | --- | --- |
 | `log_message` | Writes a message to the engine log. Also the template for new step types. |
 
+It also ships standalone `datahub-actions` plugins, which run in a plain Actions pipeline rather than the engine:
+
+| Action type | What it does |
+| --- | --- |
+| `schema_membership_sync` | When a schema is added to (or removed from) a data product, adds (or removes) every dataset in it. See [Schema membership sync](#schema-membership-sync). |
+
 ## Layout
 
 ```text
@@ -19,8 +25,36 @@ src/steves_workflow_helpers/
   actions/
     __init__.py        REGISTRARS: add each new step's register function here
     log_message.py     example step
+  plugins/
+    schema_membership_sync.py   datahub-actions Action; never imported by the engine steps
+examples/              recipes
 scripts/build_zip.py   builds dist/steves-workflow-helpers-<version>.zip
 ```
+
+## Schema membership sync
+
+`examples/data_product_schema_sync.yaml` is a complete recipe. The action listens for
+`dataProductProperties` change logs on data products and compares the new asset list with the previous one:
+
+- A container added to the product whose subtype is in `schema_subtypes` has every dataset under it added.
+  The search is recursive, so datasets in nested containers count.
+- A matching container removed from the product has its datasets removed, except any that another schema still
+  in the product covers.
+- Other containers (subtype not listed) and non-container assets are ignored.
+
+| Config | Default | Meaning |
+| --- | --- | --- |
+| `schema_subtypes` | `["Schema"]` | Container subtypes that count as a schema, case-insensitive. Add `"Database"` to expand databases. |
+| `batch_size` | `200` | Assets per emitted patch. |
+| `dry_run` | `false` | Log what would change and write nothing. |
+
+The action's own writes produce another change log, but that one only adds or removes datasets, so nothing
+further happens. Removing a schema also removes datasets in it that someone added to the product by hand.
+The pipeline needs a `datahub:` connection (or the executor's) and permission to edit data products.
+
+Use it with `type: schema_membership_sync`, or the full path
+`steves_workflow_helpers.plugins.schema_membership_sync:SchemaMembershipSyncAction`. Install this package and
+`acryl-datahub-actions` in the environment that runs the pipeline.
 
 ## Add a new step type
 
@@ -48,7 +82,7 @@ On the engine ingestion source, set **Extra Pip Libraries** to the engine plus t
 ```json
 [
   "https://github.com/brock-acryl/datahub-workflow-actions/archive/main.zip",
-  "https://github.com/<owner>/steves-workflow-action-helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.1.0.zip"
+  "https://github.com/<owner>/steves-workflow-action-helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.2.0.zip"
 ]
 ```
 

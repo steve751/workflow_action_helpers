@@ -1,0 +1,21 @@
+# Keeps a data product's datasets in step with the schemas it contains.
+# Start with dry_run: true and read the log, then set it to false.
+name: data_product_schema_sync
+source:
+  type: datahub-cloud
+  config:
+    topics: ["MetadataChangeLog_Versioned_v1"]
+filters:
+  - type: event_type
+    config:
+      filter:
+        MetadataChangeLogEvent_v1:
+          event:
+            - entityType: dataProduct
+              aspectName: dataProductProperties
+action:
+  type: schema_membership_sync
+  config:
+    schema_subtypes: ["Schema"]   # add "Database" to expand databases too
+    batch_size: 200
+    dry_run: true

@@ -4,14 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "steves-workflow-helpers"
-version = "0.1.0"
-description = "Helpers and custom step types for the DataHub workflow actions engine"
+version = "0.2.0"
+description = "Helpers, custom step types and datahub-actions plugins for DataHub workflows"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "acryl-datahub-actions"]
+
+# Lets a recipe say `type: schema_membership_sync`. The module is only imported when the action
+# is used, so the engine steps do not need acryl-datahub-actions.
+[project.entry-points."datahub_actions.action.plugins"]
+schema_membership_sync = "steves_workflow_helpers.plugins.schema_membership_sync:SchemaMembershipSyncAction"
 
 [tool.setuptools.packages.find]
 where = ["src"]
