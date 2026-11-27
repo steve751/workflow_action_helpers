@@ -4,11 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "steves-workflow-helpers"
-version = "0.3.0"
+version = "0.3.1"
 description = "Helpers, custom step types and datahub-actions plugins for DataHub workflows"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    # The schema-membership-sync ingestion source imports datahub_actions when it loads, so the
+    # executor venv must have it. Without it DataHub reports the source as disabled.
+    "acryl-datahub-actions>=1.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "acryl-datahub-actions"]

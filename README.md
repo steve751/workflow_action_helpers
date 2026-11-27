@@ -108,7 +108,7 @@ On the engine ingestion source, set **Extra Pip Libraries** to the engine plus t
 ```json
 [
   "https://github.com/brock-acryl/datahub-workflow-actions/archive/main.zip",
-  "https://github.com/steve751/workflow_action_helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.3.0.zip"
+  "https://github.com/steve751/workflow_action_helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.3.1.zip"
 ]
 ```
 
