@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "steves-workflow-helpers"
-version = "0.2.0"
+version = "0.3.0"
 description = "Helpers, custom step types and datahub-actions plugins for DataHub workflows"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,6 +17,11 @@ dev = ["pytest>=8", "acryl-datahub-actions"]
 # is used, so the engine steps do not need acryl-datahub-actions.
 [project.entry-points."datahub_actions.action.plugins"]
 schema_membership_sync = "steves_workflow_helpers.plugins.schema_membership_sync:SchemaMembershipSyncAction"
+
+# Lets an ingestion source say `type: schema-membership-sync`, which runs the action above as a
+# long-lived pipeline on the executor (the same way the workflow engine runs).
+[project.entry-points."datahub.ingestion.source.plugins"]
+schema-membership-sync = "steves_workflow_helpers.plugins.schema_membership_sync_source:SchemaMembershipSyncSource"
 
 [tool.setuptools.packages.find]
 where = ["src"]

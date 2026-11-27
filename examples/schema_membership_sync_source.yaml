@@ -1,0 +1,10 @@
+# Ingestion-source recipe: adds a schema's datasets to a data product when the schema is added to it.
+# Create it as a normal ingestion source on the executor, with this package's zip in Extra Pip Libraries.
+# Start with dry_run: true and read the run log, then set it to false.
+source:
+  type: schema-membership-sync
+  config:
+    schema_subtypes: ["Schema"]   # add "Database" to expand databases too
+    batch_size: 200
+    dry_run: true
+    pipeline_name: schema-membership-sync

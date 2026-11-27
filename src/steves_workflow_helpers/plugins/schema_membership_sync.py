@@ -10,14 +10,11 @@ Recipe::
       type: datahub-cloud
       config:
         topics: ["MetadataChangeLog_Versioned_v1"]
-    filters:
-      - type: event_type
-        config:
-          filter:
-            MetadataChangeLogEvent_v1:
-              event:
-                - entityType: dataProduct
-                  aspectName: dataProductProperties
+    filter:
+      event_type: MetadataChangeLogEvent_v1
+      event:
+        entityType: dataProduct
+        aspectName: dataProductProperties
     action:
       type: schema_membership_sync        # or steves_workflow_helpers.plugins.schema_membership_sync:SchemaMembershipSyncAction
       config:

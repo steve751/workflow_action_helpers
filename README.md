@@ -14,6 +14,9 @@ It also ships standalone `datahub-actions` plugins, which run in a plain Actions
 | --- | --- |
 | `schema_membership_sync` | When a schema is added to (or removed from) a data product, adds (or removes) every dataset in it. See [Schema membership sync](#schema-membership-sync). |
 
+The same action also runs as an ingestion source, `schema-membership-sync`, so it can run on the executor
+next to the engine. See [Run it as an ingestion source](#run-it-as-an-ingestion-source).
+
 ## Layout
 
 ```text
@@ -26,14 +29,15 @@ src/steves_workflow_helpers/
     __init__.py        REGISTRARS: add each new step's register function here
     log_message.py     example step
   plugins/
-    schema_membership_sync.py   datahub-actions Action; never imported by the engine steps
+    schema_membership_sync.py          datahub-actions Action; never imported by the engine steps
+    schema_membership_sync_source.py   ingestion source that runs that action as a pipeline
 examples/              recipes
 scripts/build_zip.py   builds dist/steves-workflow-helpers-<version>.zip
 ```
 
 ## Schema membership sync
 
-`examples/data_product_schema_sync.yaml` is a complete recipe. The action listens for
+`examples/data_product_schema_sync.yaml` is a complete `datahub-actions` recipe. The action listens for
 `dataProductProperties` change logs on data products and compares the new asset list with the previous one:
 
 - A container added to the product whose subtype is in `schema_subtypes` has every dataset under it added.
@@ -55,6 +59,28 @@ The pipeline needs a `datahub:` connection (or the executor's) and permission to
 Use it with `type: schema_membership_sync`, or the full path
 `steves_workflow_helpers.plugins.schema_membership_sync:SchemaMembershipSyncAction`. Install this package and
 `acryl-datahub-actions` in the environment that runs the pipeline.
+
+### Run it as an ingestion source
+
+`examples/schema_membership_sync_source.yaml` runs the same action from a normal ingestion source, the way the
+workflow engine runs. Create an ingestion source with this recipe and put this package's zip in **Extra Pip
+Libraries** (the executor already has `acryl-datahub-actions`):
+
+```yaml
+source:
+  type: schema-membership-sync
+  config:
+    schema_subtypes: ["Schema"]
+    dry_run: true
+    pipeline_name: schema-membership-sync
+```
+
+The source polls the Events API (the engine's transport) for `MetadataChangeLog_Versioned_v1`, handles
+`dataProductProperties` changes, and runs until stopped. It uses the ingestion run's DataHub connection. It takes the
+same `schema_subtypes`, `batch_size` and `dry_run` as the action, plus `pipeline_name` (the name the Events API
+stores its read position under; keep it stable and unique per running copy) and `cloud_events` (overrides such as
+`lookback_days` for the event source). Run it once with `dry_run: true` and read the log for
+`[dry run] add N datasets for schema ...`, then set it to `false`.
 
 ## Add a new step type
 
@@ -82,7 +108,7 @@ On the engine ingestion source, set **Extra Pip Libraries** to the engine plus t
 ```json
 [
   "https://github.com/brock-acryl/datahub-workflow-actions/archive/main.zip",
-  "https://github.com/<owner>/steves-workflow-action-helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.2.0.zip"
+  "https://github.com/steve751/workflow_action_helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.3.0.zip"
 ]
 ```
 
