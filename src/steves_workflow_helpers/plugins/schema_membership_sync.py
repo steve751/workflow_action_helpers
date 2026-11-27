@@ -66,15 +66,6 @@ class SchemaMembershipSyncConfig(ConfigModel):
     dry_run: bool = Field(
         default=False, description="Log what would change without writing anything."
     )
-    skip_datasets_in_other_products: bool = Field(
-        default=True,
-        description=(
-            "DataHub allows an asset in one data product only, so adding a dataset to this "
-            "product silently removes it from the product it was in. When true (default), datasets "
-            "that already belong to a different data product are left alone, so this action only "
-            "ever changes the product the schema was added to."
-        ),
-    )
 
 
 def asset_urns(aspect: Optional[GenericAspectClass]) -> Set[str]:
@@ -112,19 +103,8 @@ class SchemaMembershipSyncAction(Action):
         previous = asset_urns(mcl.previousAspectValue)
 
         for schema_urn in sorted(self._schemas(current - previous)):
-            candidates = self._datasets_in(schema_urn) - current
-            if self.config.skip_datasets_in_other_products:
-                taken = self._in_other_products(candidates, product_urn)
-                if taken:
-                    logger.info(
-                        "Leaving %d datasets in schema %s alone: they belong to another data "
-                        "product, and adding them to %s would remove them from it",
-                        len(taken),
-                        schema_urn,
-                        product_urn,
-                    )
-                candidates -= taken
-            self._apply(product_urn, candidates, add=True, schema_urn=schema_urn)
+            datasets = self._datasets_in(schema_urn)
+            self._apply(product_urn, datasets - current, add=True, schema_urn=schema_urn)
 
         removed = self._schemas(previous - current)
         if removed:
@@ -158,43 +138,6 @@ class SchemaMembershipSyncAction(Action):
     def _datasets_in(self, schema_urn: str) -> Set[str]:
         # container= matches through browsePathV2, so datasets in nested containers are included.
         return set(self.graph.get_urns_by_filter(entity_types=["dataset"], container=schema_urn))
-
-    def _in_other_products(self, urns: Set[str], product_urn: str) -> Set[str]:
-        """The datasets in ``urns`` that belong to a data product other than ``product_urn``.
-
-        Reads the DataProductContains edge that DataHub itself uses to enforce one product per
-        asset. When the lookup fails the dataset is treated as taken: leaving it out is safe,
-        adding it could pull it out of another product.
-        """
-        try:
-            from datahub.ingestion.graph.openapi import RelationshipDirection
-        except ImportError:
-            logger.warning(
-                "This DataHub SDK cannot look up data product membership, so no datasets are "
-                "added. Upgrade acryl-datahub or set skip_datasets_in_other_products: false."
-            )
-            return set(urns)
-
-        taken: Set[str] = set()
-        for urn in sorted(urns):
-            try:
-                owners = {
-                    related.urn
-                    for related in self.graph.get_related_entities(
-                        urn, ["DataProductContains"], RelationshipDirection.INCOMING
-                    )
-                }
-            except Exception:
-                logger.warning(
-                    "Could not check which data product holds %s; leaving it alone",
-                    urn,
-                    exc_info=True,
-                )
-                taken.add(urn)
-                continue
-            if owners - {product_urn}:
-                taken.add(urn)
-        return taken
 
     def _apply(self, product_urn: str, urns: Set[str], *, add: bool, schema_urn: str) -> None:
         if not urns:

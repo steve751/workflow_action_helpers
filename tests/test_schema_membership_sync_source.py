@@ -38,7 +38,6 @@ def test_pipeline_config_is_a_valid_actions_pipeline() -> None:
         "schema_subtypes": ["Schema", "Database"],
         "batch_size": 50,
         "dry_run": True,
-        "skip_datasets_in_other_products": True,
     }
 
 

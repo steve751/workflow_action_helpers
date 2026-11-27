@@ -127,7 +127,6 @@ def build_pipeline_config(
                 "schema_subtypes": list(config.schema_subtypes),
                 "batch_size": config.batch_size,
                 "dry_run": config.dry_run,
-                "skip_datasets_in_other_products": config.skip_datasets_in_other_products,
             },
         },
     }

@@ -48,17 +48,6 @@ class FakeGraph:
         self.subtypes = subtypes
         self.contents = contents
         self.emitted: List[Any] = []
-        # dataset -> data products that contain it (DataProductContains, incoming)
-        self.owners: Dict[str, List[str]] = {}
-        self.broken_owner_lookups: set = set()
-
-    def get_related_entities(
-        self, urn: str, relationship_types: List[str], direction: Any
-    ) -> Iterable[Any]:
-        assert relationship_types == ["DataProductContains"]
-        if urn in self.broken_owner_lookups:
-            raise ConnectionError("boom")
-        return [SimpleNamespace(urn=owner) for owner in self.owners.get(urn, [])]
 
     def get_aspect(self, urn: str, aspect_type: type) -> Optional[SubTypesClass]:
         assert aspect_type is SubTypesClass
@@ -248,45 +237,3 @@ def test_config_defaults_and_validation() -> None:
 def test_create_requires_a_datahub_connection() -> None:
     with pytest.raises(ValueError, match="DataHub connection"):
         SchemaMembershipSyncAction.create({}, SimpleNamespace(graph=None))  # type: ignore[arg-type]
-
-
-OTHER_PRODUCT = "urn:li:dataProduct:finance"
-
-
-def test_datasets_held_by_another_data_product_are_left_alone() -> None:
-    graph = make_graph()
-    graph.owners[ds("db.a.t1")] = [OTHER_PRODUCT]
-    make_action(graph).act(mcl_event([SCHEMA_A], previous=[]))
-    assert graph.changed("add") == [ds("db.a.t2")]
-
-
-def test_datasets_already_in_this_product_are_not_treated_as_taken() -> None:
-    graph = make_graph()
-    graph.owners[ds("db.a.t1")] = [PRODUCT]
-    make_action(graph).act(mcl_event([SCHEMA_A], previous=[]))
-    assert sorted(graph.changed("add")) == sorted([ds("db.a.t1"), ds("db.a.t2")])
-
-
-def test_a_failed_ownership_lookup_leaves_the_dataset_alone() -> None:
-    graph = make_graph()
-    graph.broken_owner_lookups.add(ds("db.a.t2"))
-    make_action(graph).act(mcl_event([SCHEMA_A], previous=[]))
-    assert graph.changed("add") == [ds("db.a.t1")]
-
-
-def test_skipping_other_products_can_be_turned_off() -> None:
-    graph = make_graph()
-    graph.owners[ds("db.a.t1")] = [OTHER_PRODUCT]
-    make_action(graph, skip_datasets_in_other_products=False).act(
-        mcl_event([SCHEMA_A], previous=[])
-    )
-    assert sorted(graph.changed("add")) == sorted([ds("db.a.t1"), ds("db.a.t2")])
-
-
-def test_removal_only_ever_patches_the_product_that_changed() -> None:
-    graph = make_graph()
-    graph.owners[ds("db.a.t1")] = [OTHER_PRODUCT]
-    current = [ds("db.a.t2")]
-    make_action(graph).act(mcl_event(current, previous=[*current, SCHEMA_A, ds("db.a.t1")]))
-    # FakeGraph.ops() asserts every emitted patch targets PRODUCT
-    assert graph.changed("remove") == [ds("db.a.t2")]

@@ -51,7 +51,6 @@ scripts/build_zip.py   builds dist/steves-workflow-helpers-<version>.zip
 | `schema_subtypes` | `["Schema"]` | Container subtypes that count as a schema, case-insensitive. Add `"Database"` to expand databases. |
 | `batch_size` | `200` | Assets per emitted patch. |
 | `dry_run` | `false` | Log what would change and write nothing. |
-| `skip_datasets_in_other_products` | `true` | DataHub lets an asset belong to one data product only, so adding a dataset to this product silently removes it from the product it was in. With this on, datasets that already belong to a different product are left alone and logged, so the action only ever changes the product the schema was added to. |
 
 The action's own writes produce another change log, but that one only adds or removes datasets, so nothing
 further happens. Removing a schema also removes datasets in it that someone added to the product by hand.
@@ -109,7 +108,7 @@ On the engine ingestion source, set **Extra Pip Libraries** to the engine plus t
 ```json
 [
   "https://github.com/brock-acryl/datahub-workflow-actions/archive/main.zip",
-  "https://github.com/steve751/workflow_action_helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.3.2.zip"
+  "https://github.com/steve751/workflow_action_helpers/raw/refs/heads/main/dist/steves-workflow-helpers-0.3.3.zip"
 ]
 ```
 
